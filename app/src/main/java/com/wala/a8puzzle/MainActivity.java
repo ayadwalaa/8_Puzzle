@@ -78,9 +78,7 @@ public class MainActivity extends AppCompatActivity {
             shuffle.setEnabled(true);
             start.setEnabled(true);
         });
-        next_step.setOnClickListener(w->{
-            Toast.makeText(this, solve(), Toast.LENGTH_LONG).show();
-        });
+        next_step.setOnClickListener(w-> Toast.makeText(this, solveForHint().split("&")[0], Toast.LENGTH_LONG).show());
         shuffle.setOnClickListener(b->{
             createCurrentState();
             setGridElements(current_state);
@@ -655,12 +653,18 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private String moveOneStep(){
+    private String solveForHint() {
+
         int s = 0;
+        sol = "";
 
         int row, column;
         row = column = 0;
         int[][] zero = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
+        //do {
+
+        while (!open.isEmpty()) {
 
             State expand_left = new State();
             State expand_right = new State();
@@ -678,7 +682,7 @@ public class MainActivity extends AppCompatActivity {
             open.remove(0);
             if (areTheyEqual(current_state.getCurrent_state(), first_goal)) {
                 //return sol;
-                return "";
+                break;
             }
 
             for (int i = 0; i < 3; i++) {
@@ -732,18 +736,19 @@ public class MainActivity extends AppCompatActivity {
             }
 
             close.add(current_state);
-            setGridElements(current_state);
+            //setGridElements(current_state);
 
-        return "";
-
-    }
-
-    class AsyncSolver extends AsyncTask{
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-            solve();
-            return null;
         }
+
+        //setGridElements(current_state);
+
+        //} while (!areTheyEqual(current_state.getCurrent_state(), first_goal));
+        printArray(current_state.getCurrent_state(), "Congrats");
+
+        //start.setEnabled(true);
+        //shuffle.setEnabled(true);
+
+        return sol;
     }
+
 }
