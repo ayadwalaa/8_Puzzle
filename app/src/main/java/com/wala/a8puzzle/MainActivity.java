@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -13,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tile_0, tile_1, tile_2,
                      tile_3, tile_4, tile_5,
                      tile_6, tile_7, tile_8;
-    private Timer timer;
+    private Button start, shuffle, next_step, stop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,24 +58,28 @@ public class MainActivity extends AppCompatActivity {
 
         setGridElements(current_state);
 
-        Button start = findViewById(R.id.start);
-        Button shuffle = findViewById(R.id.shuffle);
-        Button next_step = findViewById(R.id.hint);
-        Button stop = findViewById(R.id.stop);
+        start = findViewById(R.id.start);
+        shuffle = findViewById(R.id.shuffle);
+        next_step = findViewById(R.id.hint);
+        stop = findViewById(R.id.stop);
 
         start.setOnClickListener(v->{
-            solve();
             shuffle.setEnabled(false);
             start.setEnabled(false);
+
+            Handler handler = new Handler();
+            handler.post(this::solve);
+//            AsyncSolver asyncSolver = new AsyncSolver();
+//            asyncSolver.doInBackground(null);
         });
         stop.setOnClickListener(n->{
-            if(timer!=null)
-                timer.cancel();
+//            if(timer!=null)
+//                timer.cancel();
             shuffle.setEnabled(true);
             start.setEnabled(true);
         });
         next_step.setOnClickListener(w->{
-            //moveOneStep();
+            Toast.makeText(this, solve(), Toast.LENGTH_LONG).show();
         });
         shuffle.setOnClickListener(b->{
             createCurrentState();
@@ -93,58 +99,6 @@ public class MainActivity extends AppCompatActivity {
         goal_list.add(8);
     }
 
-    private void startSolving(){
-        timer = new Timer();
-        /*timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                moveOneStep();
-            }
-        }, 0, 100);*/
-    }
-
-    /*private void moveOneStep(){
-
-        current_state = priorityQueue.remove();
-
-        if(areTheyEqual(current_state.getCurrent_state(), first_goal)) {
-            timer.cancel();
-            setGridElements();
-            return;
-        }
-
-        if (isExplored(current_state.getCurrent_state()))
-            return;
-
-        int row, column;
-        row = column = 0;
-        int level = current_state.getLevel();
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                if (current_state.getCurrent_state()[i][j] == 0) {
-                    row = i;
-                    column = j;
-                    break;
-                }
-
-        if ((column - 1 >= 0)) {
-            expandLeft(current_state.getCurrent_state(), row, column);
-        }
-        if ((column + 1 <= 2)) {
-            expandRight(current_state.getCurrent_state(), row, column);
-        }
-        if ((row - 1 >= 0)) {
-            expandUp(current_state.getCurrent_state(), row, column);
-        }
-        if ((row + 1 <= 2)) {
-            expandDown(current_state.getCurrent_state(), row, column);
-        }
-
-        states.add(current_state);
-        // printArray(current_state.getCurrent_state(), "Am I working?");
-        setGridElements();
-    }
-*/
     private void setGridElements(State current_state){
         for (int i = 0; i<9; i++){
             TextView textView = (TextView)gridLayout.getChildAt(i);
@@ -159,9 +113,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void createCurrentState() {
-        //int[][] current;
-        int [][] current = {{4,2,5},{3,7,8},{6,0,1}};
-       /* do {
+        int [][] current;
+        do {
             ArrayList<Integer> numbers = new ArrayList<>();
             for (int i = 0; i < 9; i++) {
                 numbers.add(i);
@@ -176,19 +129,19 @@ public class MainActivity extends AppCompatActivity {
                     init[i][j] = current[i][j];
                 }
             }
-        } while (!isSolvable(current));
-        */
+        }while (!isSolvable(current));
 
-
-        //current_state.setParent(null);
         current_state = new State(current);
         current_state.setExplored(true);
+        states = new ArrayList<>();
+        open = new ArrayList<>();
+        close = new ArrayList<>();
+
         states.add(current_state);
         open.add(current_state);
         Collections.sort(open, new StateComparator());
 
         printArray(current_state.getCurrent_state(), "This is starting state");
-        //printArray(init, "This is init state");
     }
 
     private boolean isSolvable(int[][] puzzle) {
@@ -209,14 +162,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void printArray(int[][] array, String message){
-        System.out.println(message);
-        for (int i = 0; i < 3; i++) {
-            System.out.print("[ ");
-            for (int j = 0; j < 3; j++) {
-                System.out.printf("%d%s", array[i][j], " ");
-            }
-            System.out.println("]");
-        }
+//        System.out.println(message);
+//        for (int i = 0; i < 3; i++) {
+//            System.out.print("[ ");
+//            for (int j = 0; j < 3; j++) {
+//                System.out.printf("%d%s", array[i][j], " ");
+//            }
+//            System.out.println("]");
+//        }
     }
 
     private int[][] expandRight(int[][] array, int n, int m) {
@@ -227,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
         expand_right[n][m] = expand_right[n][m + 1];
         expand_right[n][m + 1] = tmp;
         //manhattanFunction(expand_right);
+        sol += "Go Right&";
         return expand_right;
     }
 
@@ -237,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         int tmp = expand_left[n][m];
         expand_left[n][m] = expand_left[n][m - 1];
         expand_left[n][m - 1] = tmp;
-
+        sol += "Go Left&";
         //manhattanFunction(expand_left);
         return expand_left;
     }
@@ -249,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
         int tmp = expand_up[n][m];
         expand_up[n][m] = expand_up[n - 1][m];
         expand_up[n - 1][m] = tmp;
+        sol += "Go Up&";
         //manhattanFunction(expand_up);
         return expand_up;
     }
@@ -260,97 +215,10 @@ public class MainActivity extends AppCompatActivity {
         int tmp = expand_down[n][m];
         expand_down[n][m] = expand_down[n + 1][m];
         expand_down[n + 1][m] = tmp;
-
+        sol += "Go Down&";
         //manhattanFunction(expand_down);
         return expand_down;
     }
-
-    private void moveRight(State state, int n, int m) {
-        int[][] array = state.getCurrent_state();
-        int tmp = array[n][m];
-        array[n][m] = array[n][m + 1];
-        array[n][m + 1] = tmp;
-        State new_state = new State(array);
-        new_state.setExplored(true);
-        states.add(new_state);
-        System.out.println("Moved right");
-        sol += "Move Right.\n";
-        //sol.setText("Move right.\n");
-    }
-
-    private void moveLeft(State state, int n, int m) {
-        int[][] array = state.getCurrent_state();
-        int tmp = array[n][m];
-        array[n][m] = array[n][m - 1];
-        array[n][m - 1] = tmp;
-        State new_state = new State(array);
-        new_state.setExplored(true);
-        states.add(new_state);
-        System.out.println("Moved left");
-        sol += "Move Left.\n";
-    }
-
-    private void moveUp(State state, int n, int m) {
-        int[][] array = state.getCurrent_state();
-        int tmp = array[n][m];
-        array[n][m] = array[n - 1][m];
-        array[n - 1][m] = tmp;
-        State new_state = new State(array);
-        new_state.setExplored(true);
-        states.add(new_state);
-        System.out.println("Moved up");
-        sol += "Move Up.\n";
-    }
-
-    private void moveDown(State state, int n, int m) {
-        int[][] array = state.getCurrent_state();
-        int tmp = array[n][m];
-        array[n][m] = array[n + 1][m];
-        array[n + 1][m] = tmp;
-        State new_state = new State(array);
-        new_state.setExplored(true);
-        states.add(new_state);
-        System.out.println("Moved down");
-        sol += "Move Down.\n";
-    }
-    private int manhattan(int[][] expanded, int level){
-        int manhattan_value = 0;
-        int to_find;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                to_find = first_goal[i][j];
-                for (int q = 0; q < 3; q++) {
-                    for (int w = 0; w < 3; w++) {
-                        if (to_find == expanded[q][w]) {
-                            manhattan_value = manhattan_value + Math.abs(i - q) + Math.abs(j - w);
-                        }
-                    }
-                }
-            }
-        }
-
-        return manhattan_value;
-    }
-
-    private int findDifference(int[][] current, int[][] goal){
-        int to_return = 0;
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++){
-                if(current[i][j] != goal[i][j])
-                    to_return++;
-            }
-        to_return /= 2;
-        return to_return;
-    }
-
-    private boolean isExplored(int[][] state_array){
-        for(State state: states){
-            if(areTheyEqual(state.getCurrent_state(), state_array))
-                return true;
-        }
-        return false;
-    }
-
 
     private void initTextViews(){
         tile_0 = findViewById(R.id.tile_0);
@@ -519,12 +387,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void setCurrentStateFromBoard(ArrayList<Integer> numbers){
 
-        int[][] current;
+        int [][] current;
+
 
         current = new int[3][3];
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                    // init_state[i][j] = numbers.get(i * 3 + j);
+                // init_state[i][j] = numbers.get(i * 3 + j);
                 current[i][j] = numbers.get(i * 3 + j);
                 init[i][j] = current[i][j];
             }
@@ -532,9 +401,15 @@ public class MainActivity extends AppCompatActivity {
 
         current_state = new State(current);
         current_state.setExplored(true);
-        //current_state.setLevel(0);
-        priorityQueue.clear();
-        priorityQueue.add(current_state);
+        states = new ArrayList<>();
+        open = new ArrayList<>();
+        close = new ArrayList<>();
+
+        states.add(current_state);
+        open.add(current_state);
+        Collections.sort(open, new StateComparator());
+
+        printArray(current_state.getCurrent_state(), "This is starting state");
     }
 
     private int manhattan(int[][] expanded) {
@@ -615,9 +490,10 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    public String solve() {
+    private String solve() {
 
         int s = 0;
+        sol = "";
 
         int row, column;
         row = column = 0;
@@ -637,12 +513,9 @@ public class MainActivity extends AppCompatActivity {
                  System.out.println("");
                  }*/
             s++;
-            System.out.println("s " + s);
 
-            System.out.println("size1 " + open.size());
             current_state = open.get(0);
             printArray(current_state.getCurrent_state(), "current");
-            System.out.println(" cost of current " + current_state.getCost());
             open.remove(0);
             if (areTheyEqual(current_state.getCurrent_state(), first_goal)) {
                 //return sol;
@@ -662,29 +535,21 @@ public class MainActivity extends AppCompatActivity {
             if ((column - 1 >= 0)) {
                 expand_left.setCurrentState(expandLeft(current_state.getCurrent_state(), row, column));
                 expand_left.setCost(manhattan(expand_left.getCurrent_state()) + cost(expand_left.getCurrent_state()));
-                System.out.println("expand left: ");
-                System.out.println(" cost of left " + expand_left.getCost());
             }
             if ((column + 1 <= 2)) {
                 expand_right.setCurrentState(expandRight(current_state.getCurrent_state(), row, column));
                 expand_right.setCost(manhattan(expand_right.getCurrent_state()) + cost(expand_right.getCurrent_state()));
 
-                System.out.println("expand right: ");
-                System.out.println(" cost of right " + expand_right.getCost());
             }
             if ((row - 1 >= 0)) {
                 expand_up.setCurrentState(expandUp(current_state.getCurrent_state(), row, column));
                 expand_up.setCost(manhattan(expand_up.getCurrent_state()) + cost(expand_up.getCurrent_state()));
 
-                System.out.println("expand up: ");
-                System.out.println(" cost of up " + expand_up.getCost());
             }
             if ((row + 1 <= 2)) {
                 expand_down.setCurrentState(expandDown(current_state.getCurrent_state(), row, column));
                 expand_down.setCost(manhattan(expand_down.getCurrent_state()) + cost(expand_down.getCurrent_state()));
 
-                System.out.println("expand down: ");
-                System.out.println(" cost of down " + expand_down.getCost());
             }
 
             //left
@@ -709,31 +574,22 @@ public class MainActivity extends AppCompatActivity {
 
             close.add(current_state);
             setGridElements(current_state);
-            System.out.println("size2 " + open.size());
 
         }
 
-        System.out.println("out of while");
+        setGridElements(current_state);
 
         //} while (!areTheyEqual(current_state.getCurrent_state(), first_goal));
         printArray(current_state.getCurrent_state(), "Congrats");
-        System.out.println("size of close " + close.size());
-        System.out.println("size of open " + open.size());
-        int p = 0;
 
-        /*State path = new State();
-        path = close.get(close.size()-1);
-        System.out.println("p= " + p);
-        while(!areTheyEqual(path.getParent(),zero)){
-            path.setCurrentState(path.getParent());
-            p++;
-        }
-        System.out.println("p= " + p);*/
+        start.setEnabled(true);
+        shuffle.setEnabled(true);
 
         return sol;
     }
 
     public void A_star(State expand, String s) {
+
         boolean states_flag, open_flag, close_flag;
         int index;
 
@@ -747,14 +603,12 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (!states_flag) {//not generated before
-            System.out.println(s + " not generated");
             expand.setCost(manhattan(expand.getCurrent_state()) + cost(expand.getCurrent_state()));
             expand.setParent(current_state.getCurrent_state());
             open.add(expand);
             Collections.sort(open, new StateComparator());
             states.add(expand);
         } else if (states_flag) {//generated before
-            System.out.println(s + " generated");
 
             index = -1;
             for (State state : open) {
@@ -767,11 +621,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (open_flag) {
-                System.out.println(s + " in open");
                 //int index = open.indexOf(expand_left);
                 State old_left = open.get(index);
                 if (expand.getCost() < old_left.getCost()) {
-                    System.out.println(s + " updated");
                     old_left.setCost(expand.getCost());
                     old_left.setParent(current_state.getCurrent_state());
                     open.add(index, old_left);
@@ -790,11 +642,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (close_flag) {
-                System.out.println(s + " in close");
                 //int index = close.indexOf(expand_left);
                 State old_left = close.get(index);
                 if (expand.getCost() < old_left.getCost()) {
-                    System.out.println(s + " updated");
                     close.remove(index);
                     open.add(expand);
                     Collections.sort(open, new StateComparator());
@@ -803,5 +653,97 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+    }
+
+    private String moveOneStep(){
+        int s = 0;
+
+        int row, column;
+        row = column = 0;
+        int[][] zero = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
+            State expand_left = new State();
+            State expand_right = new State();
+            State expand_up = new State();
+            State expand_down = new State();
+
+                /*for (State state : states) {
+                 printArray(state.getCurrent_state(), "states " + s);
+                 System.out.println("");
+                 }*/
+            s++;
+
+            current_state = open.get(0);
+            printArray(current_state.getCurrent_state(), "current");
+            open.remove(0);
+            if (areTheyEqual(current_state.getCurrent_state(), first_goal)) {
+                //return sol;
+                return "";
+            }
+
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (current_state.getCurrent_state()[i][j] == 0) {
+                        row = i;
+                        column = j;
+                        break;
+                    }
+                }
+            }
+
+            if ((column - 1 >= 0)) {
+                expand_left.setCurrentState(expandLeft(current_state.getCurrent_state(), row, column));
+                expand_left.setCost(manhattan(expand_left.getCurrent_state()) + cost(expand_left.getCurrent_state()));
+            }
+            if ((column + 1 <= 2)) {
+                expand_right.setCurrentState(expandRight(current_state.getCurrent_state(), row, column));
+                expand_right.setCost(manhattan(expand_right.getCurrent_state()) + cost(expand_right.getCurrent_state()));
+
+            }
+            if ((row - 1 >= 0)) {
+                expand_up.setCurrentState(expandUp(current_state.getCurrent_state(), row, column));
+                expand_up.setCost(manhattan(expand_up.getCurrent_state()) + cost(expand_up.getCurrent_state()));
+
+            }
+            if ((row + 1 <= 2)) {
+                expand_down.setCurrentState(expandDown(current_state.getCurrent_state(), row, column));
+                expand_down.setCost(manhattan(expand_down.getCurrent_state()) + cost(expand_down.getCurrent_state()));
+
+            }
+
+            //left
+            if (!areTheyEqual(expand_left.getCurrent_state(), zero)) {
+                A_star(expand_left, "left");
+            }
+
+            //right
+            if (!areTheyEqual(expand_right.getCurrent_state(), zero)) {
+                A_star(expand_right, "right");
+            }
+
+            //up
+            if (!areTheyEqual(expand_up.getCurrent_state(), zero)) {
+                A_star(expand_up, "up");
+            }
+
+            //down
+            if (!areTheyEqual(expand_down.getCurrent_state(), zero)) {
+                A_star(expand_down, "down");
+            }
+
+            close.add(current_state);
+            setGridElements(current_state);
+
+        return "";
+
+    }
+
+    class AsyncSolver extends AsyncTask{
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            solve();
+            return null;
+        }
     }
 }
