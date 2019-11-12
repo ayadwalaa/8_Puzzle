@@ -25,9 +25,12 @@ public class MainActivity extends AppCompatActivity {
     private int[][] secmd = {{1, 2, 3}, {8, 0, 4}, {7, 6, 5}};
     private int[][] first_goal = {{1, 2, 3}, {4, 5, 6}, {7, 8, 0}};
     private int[][] init = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
+    private String sol = "";
 
     private State current_state;
     private ArrayList<State> states = new ArrayList<>();
+    public ArrayList<State> open = new ArrayList<>();
+    public ArrayList<State> close = new ArrayList<>();
     private ArrayList<TextView> textViews = new ArrayList<>();
     private ArrayList<Integer> goal_list = new ArrayList<>();
     private PriorityQueue<State> priorityQueue;
@@ -51,14 +54,15 @@ public class MainActivity extends AppCompatActivity {
         priorityQueue = new PriorityQueue<>(1000, stateComparator);
         createCurrentState();
 
-        setGridElements();
+        setGridElements(current_state);
 
         Button start = findViewById(R.id.start);
         Button shuffle = findViewById(R.id.shuffle);
+        Button next_step = findViewById(R.id.hint);
         Button stop = findViewById(R.id.stop);
 
         start.setOnClickListener(v->{
-            startSolving();
+            solve();
             shuffle.setEnabled(false);
             start.setEnabled(false);
         });
@@ -68,9 +72,12 @@ public class MainActivity extends AppCompatActivity {
             shuffle.setEnabled(true);
             start.setEnabled(true);
         });
+        next_step.setOnClickListener(w->{
+            //moveOneStep();
+        });
         shuffle.setOnClickListener(b->{
             createCurrentState();
-            setGridElements();
+            setGridElements(current_state);
         });
     }
 
@@ -88,15 +95,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void startSolving(){
         timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
+        /*timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 moveOneStep();
             }
-        }, 0, 100);
+        }, 0, 100);*/
     }
 
-    private void moveOneStep(){
+    /*private void moveOneStep(){
 
         current_state = priorityQueue.remove();
 
@@ -121,24 +128,24 @@ public class MainActivity extends AppCompatActivity {
                 }
 
         if ((column - 1 >= 0)) {
-            expandLeft(current_state.getCurrent_state(), row, column, level);
+            expandLeft(current_state.getCurrent_state(), row, column);
         }
         if ((column + 1 <= 2)) {
-            expandRight(current_state.getCurrent_state(), row, column, level);
+            expandRight(current_state.getCurrent_state(), row, column);
         }
         if ((row - 1 >= 0)) {
-            expandUp(current_state.getCurrent_state(), row, column, level);
+            expandUp(current_state.getCurrent_state(), row, column);
         }
         if ((row + 1 <= 2)) {
-            expandDown(current_state.getCurrent_state(), row, column, level);
+            expandDown(current_state.getCurrent_state(), row, column);
         }
 
         states.add(current_state);
         // printArray(current_state.getCurrent_state(), "Am I working?");
         setGridElements();
     }
-
-    private void setGridElements(){
+*/
+    private void setGridElements(State current_state){
         for (int i = 0; i<9; i++){
             TextView textView = (TextView)gridLayout.getChildAt(i);
             textView.setText(String.valueOf(current_state.getCurrent_state()[(int)i/3][i%3]));
@@ -151,9 +158,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void createCurrentState(){
-        int[][] current;
-        do {
+    public void createCurrentState() {
+        //int[][] current;
+        int [][] current = {{4,2,5},{3,7,8},{6,0,1}};
+       /* do {
             ArrayList<Integer> numbers = new ArrayList<>();
             for (int i = 0; i < 9; i++) {
                 numbers.add(i);
@@ -168,24 +176,33 @@ public class MainActivity extends AppCompatActivity {
                     init[i][j] = current[i][j];
                 }
             }
-        }while (!isSolvable(current));
+        } while (!isSolvable(current));
+        */
 
+
+        //current_state.setParent(null);
         current_state = new State(current);
         current_state.setExplored(true);
-        current_state.setLevel(0);
-        priorityQueue.add(current_state);
+        states.add(current_state);
+        open.add(current_state);
+        Collections.sort(open, new StateComparator());
+
+        printArray(current_state.getCurrent_state(), "This is starting state");
+        //printArray(init, "This is init state");
     }
 
-    private boolean isSolvable(int[][] puzzle){
+    private boolean isSolvable(int[][] puzzle) {
         // Count inversions in given 8 puzzle
         int inv_count = 0;
-        for (int i = 0; i < 3 - 1; i++)
-            for (int j = i + 1; j < 3; j++)
-
-                // Value 0 is used for empty space
-                if (puzzle[j][i] > 0 && puzzle[j][i] > 0 &&
-                        puzzle[j][i] > puzzle[i][j])
+        for (int i = 0; i < 3 - 1; i++) {
+            for (int j = i + 1; j < 3; j++) // Value 0 is used for empty space
+            {
+                if (puzzle[j][i] > 0 && puzzle[j][i] > 0
+                        && puzzle[j][i] > puzzle[i][j]) {
                     inv_count++;
+                }
+            }
+        }
 
         // return true if inversion count is even.
         return (inv_count % 2 == 0);
@@ -202,74 +219,117 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void expandRight(int[][] array, int n, int m, int level){
+    private int[][] expandRight(int[][] array, int n, int m) {
         int[][] expand_right = new int[3][3];
         copyArray(array, expand_right);
 
         int tmp = expand_right[n][m];
         expand_right[n][m] = expand_right[n][m + 1];
         expand_right[n][m + 1] = tmp;
-        if(isExplored(expand_right))
-            return;
-        manhattanFunction(expand_right, level);
+        //manhattanFunction(expand_right);
+        return expand_right;
     }
-    private void expandLeft(int[][] array, int n, int m, int level){
+
+    private int[][] expandLeft(int[][] array, int n, int m) {
         int[][] expand_left = new int[3][3];
         copyArray(array, expand_left);
 
         int tmp = expand_left[n][m];
         expand_left[n][m] = expand_left[n][m - 1];
         expand_left[n][m - 1] = tmp;
-        if (isExplored(expand_left))
-            return;
-        manhattanFunction(expand_left ,level);
+
+        //manhattanFunction(expand_left);
+        return expand_left;
     }
-    private void expandUp(int[][] array, int n, int m, int level){
+
+    private int[][] expandUp(int[][] array, int n, int m) {
         int[][] expand_up = new int[3][3];
         copyArray(array, expand_up);
 
         int tmp = expand_up[n][m];
-        expand_up[n][m] = expand_up[n-1][m];
-        expand_up[n-1][m] = tmp;
-        if (isExplored(expand_up))
-            return;
-        manhattanFunction(expand_up, level);
+        expand_up[n][m] = expand_up[n - 1][m];
+        expand_up[n - 1][m] = tmp;
+        //manhattanFunction(expand_up);
+        return expand_up;
     }
-    private void expandDown(int[][] array, int n, int m, int level){
+
+    private int[][] expandDown(int[][] array, int n, int m) {
         int[][] expand_down = new int[3][3];
         copyArray(array, expand_down);
 
         int tmp = expand_down[n][m];
-        expand_down[n][m] = expand_down[n+1][m];
-        expand_down[n+1][m] = tmp;
-        if (isExplored(expand_down))
-            return;
-        manhattanFunction(expand_down, level);
+        expand_down[n][m] = expand_down[n + 1][m];
+        expand_down[n + 1][m] = tmp;
+
+        //manhattanFunction(expand_down);
+        return expand_down;
     }
 
-    private void manhattanFunction(int[][] expanded, int level){
-        int manhattan_value= 0;
-        int to_find;
-        manhattan_value = findDifference(expanded, first_goal);
-//        for (int i = 0; i<3; i++)
-//            for (int j = 0; j<3; j++){
-//                // if((expanded[i][j] != first_goal[i][j]) && (expanded[i][j] != 0 || first_goal[i][j] != 0) )manhattan_value++;
-//                to_find = first_goal[i][j];
-//                for (int q = 0; q<3;q++)
-//                    for (int w =0; w<3; w++){
-//                        if (to_find == expanded[q][w]){
-//                            //if(i!=q || j!=w)
-//                                manhattan_value = manhattan_value + Math.abs(i-q) + Math.abs(j-w);
-//                        }
-//                    }
-//            }
-        // manhattan_value += level;
+    private void moveRight(State state, int n, int m) {
+        int[][] array = state.getCurrent_state();
+        int tmp = array[n][m];
+        array[n][m] = array[n][m + 1];
+        array[n][m + 1] = tmp;
+        State new_state = new State(array);
+        new_state.setExplored(true);
+        states.add(new_state);
+        System.out.println("Moved right");
+        sol += "Move Right.\n";
+        //sol.setText("Move right.\n");
+    }
 
-        State new_state = new State(expanded);
-        new_state.setLevel(level+1);
-        new_state.setCost(manhattan_value);
-        priorityQueue.add(new_state);
-        // states.add(new_state);
+    private void moveLeft(State state, int n, int m) {
+        int[][] array = state.getCurrent_state();
+        int tmp = array[n][m];
+        array[n][m] = array[n][m - 1];
+        array[n][m - 1] = tmp;
+        State new_state = new State(array);
+        new_state.setExplored(true);
+        states.add(new_state);
+        System.out.println("Moved left");
+        sol += "Move Left.\n";
+    }
+
+    private void moveUp(State state, int n, int m) {
+        int[][] array = state.getCurrent_state();
+        int tmp = array[n][m];
+        array[n][m] = array[n - 1][m];
+        array[n - 1][m] = tmp;
+        State new_state = new State(array);
+        new_state.setExplored(true);
+        states.add(new_state);
+        System.out.println("Moved up");
+        sol += "Move Up.\n";
+    }
+
+    private void moveDown(State state, int n, int m) {
+        int[][] array = state.getCurrent_state();
+        int tmp = array[n][m];
+        array[n][m] = array[n + 1][m];
+        array[n + 1][m] = tmp;
+        State new_state = new State(array);
+        new_state.setExplored(true);
+        states.add(new_state);
+        System.out.println("Moved down");
+        sol += "Move Down.\n";
+    }
+    private int manhattan(int[][] expanded, int level){
+        int manhattan_value = 0;
+        int to_find;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                to_find = first_goal[i][j];
+                for (int q = 0; q < 3; q++) {
+                    for (int w = 0; w < 3; w++) {
+                        if (to_find == expanded[q][w]) {
+                            manhattan_value = manhattan_value + Math.abs(i - q) + Math.abs(j - w);
+                        }
+                    }
+                }
+            }
+        }
+
+        return manhattan_value;
     }
 
     private int findDifference(int[][] current, int[][] goal){
@@ -291,22 +351,6 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    private void copyArray(int[][] from_array, int[][] to_array){
-        for (int i = 0; i < 3; i++)
-            for(int j=0; j<3;j++){
-                to_array[i][j] = from_array[i][j];
-            }
-    }
-
-    private boolean areTheyEqual(int[][] arr1, int[][] arr2){
-        for(int k=0; k<3; k++) {
-            for(int l=0; l<3; l++) {
-                if(arr1[k][l] != arr2[k][l])
-                    return false;
-            }
-        }
-        return true;
-    }
 
     private void initTextViews(){
         tile_0 = findViewById(R.id.tile_0);
@@ -454,6 +498,8 @@ public class MainActivity extends AppCompatActivity {
                 checker.add(Integer.valueOf(textView.getText().toString()));
         }
 
+        setCurrentStateFromBoard(checker);
+
         for (int i=0; i<checker.size()-1; i++){
             if (checker.get(i) != i){
                 return;
@@ -469,5 +515,293 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> dialog.cancel())
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
+    }
+
+    private void setCurrentStateFromBoard(ArrayList<Integer> numbers){
+
+        int[][] current;
+
+        current = new int[3][3];
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                    // init_state[i][j] = numbers.get(i * 3 + j);
+                current[i][j] = numbers.get(i * 3 + j);
+                init[i][j] = current[i][j];
+            }
+        }
+
+        current_state = new State(current);
+        current_state.setExplored(true);
+        //current_state.setLevel(0);
+        priorityQueue.clear();
+        priorityQueue.add(current_state);
+    }
+
+    private int manhattan(int[][] expanded) {
+        int manhattan_value = 0;
+        int to_find;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                to_find = first_goal[i][j];
+                for (int q = 0; q < 3; q++) {
+                    for (int w = 0; w < 3; w++) {
+                        if (to_find == expanded[q][w]) {
+                            manhattan_value = manhattan_value + Math.abs(i - q) + Math.abs(j - w);
+                        }
+                    }
+                }
+            }
+        }
+
+        return manhattan_value;
+
+        /*
+         State new_state = new State(expanded);
+         ////new_state.setCost(manhattan_value);
+         for (State state : states) {
+         if (state.equals(new_state)) {
+         new_state.setExplored(true);
+         ////if(new_state.getCost()<state.getCost()){
+         // // state.setCost(manhattan_value);
+         ////state.setExplored(false);
+         ////}
+
+         break;
+         }
+         }
+         new_state.setCost(manhattan_value);
+         if (!new_state.isExplored()) {
+         open.add(new_state);
+         states.add(new_state);
+         }
+         */
+    }
+
+    private int cost(int[][] expanded) {
+        int cost = 0;
+        int to_find;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                to_find = init[i][j];
+                for (int q = 0; q < 3; q++) {
+                    for (int w = 0; w < 3; w++) {
+                        if (to_find == expanded[q][w]) {
+                            cost = cost + Math.abs(i - q) + Math.abs(j - w);
+                        }
+                    }
+                }
+            }
+        }
+
+        return cost;
+    }
+
+    public void copyArray(int[][] from_array, int[][] to_array) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                to_array[i][j] = from_array[i][j];
+            }
+        }
+    }
+
+    private boolean areTheyEqual(int[][] arr1, int[][] arr2) {
+        for (int k = 0; k < 3; k++) {
+            for (int l = 0; l < 3; l++) {
+                if (arr1[k][l] != arr2[k][l]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public String solve() {
+
+        int s = 0;
+
+        int row, column;
+        row = column = 0;
+        int[][] zero = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+
+        //do {
+
+        while (!open.isEmpty()) {
+
+            State expand_left = new State();
+            State expand_right = new State();
+            State expand_up = new State();
+            State expand_down = new State();
+
+                /*for (State state : states) {
+                 printArray(state.getCurrent_state(), "states " + s);
+                 System.out.println("");
+                 }*/
+            s++;
+            System.out.println("s " + s);
+
+            System.out.println("size1 " + open.size());
+            current_state = open.get(0);
+            printArray(current_state.getCurrent_state(), "current");
+            System.out.println(" cost of current " + current_state.getCost());
+            open.remove(0);
+            if (areTheyEqual(current_state.getCurrent_state(), first_goal)) {
+                //return sol;
+                break;
+            }
+
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (current_state.getCurrent_state()[i][j] == 0) {
+                        row = i;
+                        column = j;
+                        break;
+                    }
+                }
+            }
+
+            if ((column - 1 >= 0)) {
+                expand_left.setCurrentState(expandLeft(current_state.getCurrent_state(), row, column));
+                expand_left.setCost(manhattan(expand_left.getCurrent_state()) + cost(expand_left.getCurrent_state()));
+                System.out.println("expand left: ");
+                System.out.println(" cost of left " + expand_left.getCost());
+            }
+            if ((column + 1 <= 2)) {
+                expand_right.setCurrentState(expandRight(current_state.getCurrent_state(), row, column));
+                expand_right.setCost(manhattan(expand_right.getCurrent_state()) + cost(expand_right.getCurrent_state()));
+
+                System.out.println("expand right: ");
+                System.out.println(" cost of right " + expand_right.getCost());
+            }
+            if ((row - 1 >= 0)) {
+                expand_up.setCurrentState(expandUp(current_state.getCurrent_state(), row, column));
+                expand_up.setCost(manhattan(expand_up.getCurrent_state()) + cost(expand_up.getCurrent_state()));
+
+                System.out.println("expand up: ");
+                System.out.println(" cost of up " + expand_up.getCost());
+            }
+            if ((row + 1 <= 2)) {
+                expand_down.setCurrentState(expandDown(current_state.getCurrent_state(), row, column));
+                expand_down.setCost(manhattan(expand_down.getCurrent_state()) + cost(expand_down.getCurrent_state()));
+
+                System.out.println("expand down: ");
+                System.out.println(" cost of down " + expand_down.getCost());
+            }
+
+            //left
+            if (!areTheyEqual(expand_left.getCurrent_state(), zero)) {
+                A_star(expand_left, "left");
+            }
+
+            //right
+            if (!areTheyEqual(expand_right.getCurrent_state(), zero)) {
+                A_star(expand_right, "right");
+            }
+
+            //up
+            if (!areTheyEqual(expand_up.getCurrent_state(), zero)) {
+                A_star(expand_up, "up");
+            }
+
+            //down
+            if (!areTheyEqual(expand_down.getCurrent_state(), zero)) {
+                A_star(expand_down, "down");
+            }
+
+            close.add(current_state);
+            setGridElements(current_state);
+            System.out.println("size2 " + open.size());
+
+        }
+
+        System.out.println("out of while");
+
+        //} while (!areTheyEqual(current_state.getCurrent_state(), first_goal));
+        printArray(current_state.getCurrent_state(), "Congrats");
+        System.out.println("size of close " + close.size());
+        System.out.println("size of open " + open.size());
+        int p = 0;
+
+        /*State path = new State();
+        path = close.get(close.size()-1);
+        System.out.println("p= " + p);
+        while(!areTheyEqual(path.getParent(),zero)){
+            path.setCurrentState(path.getParent());
+            p++;
+        }
+        System.out.println("p= " + p);*/
+
+        return sol;
+    }
+
+    public void A_star(State expand, String s) {
+        boolean states_flag, open_flag, close_flag;
+        int index;
+
+        states_flag = open_flag = close_flag = false;
+
+        for (State state : states) {
+            if (areTheyEqual(state.getCurrent_state(), expand.getCurrent_state())) {
+                states_flag = true;
+                break;
+
+            }
+        }
+        if (!states_flag) {//not generated before
+            System.out.println(s + " not generated");
+            expand.setCost(manhattan(expand.getCurrent_state()) + cost(expand.getCurrent_state()));
+            expand.setParent(current_state.getCurrent_state());
+            open.add(expand);
+            Collections.sort(open, new StateComparator());
+            states.add(expand);
+        } else if (states_flag) {//generated before
+            System.out.println(s + " generated");
+
+            index = -1;
+            for (State state : open) {
+                index++;
+                if (areTheyEqual(state.getCurrent_state(), expand.getCurrent_state())) {
+                    open_flag = true;
+                    break;
+
+                }
+            }
+
+            if (open_flag) {
+                System.out.println(s + " in open");
+                //int index = open.indexOf(expand_left);
+                State old_left = open.get(index);
+                if (expand.getCost() < old_left.getCost()) {
+                    System.out.println(s + " updated");
+                    old_left.setCost(expand.getCost());
+                    old_left.setParent(current_state.getCurrent_state());
+                    open.add(index, old_left);
+                    Collections.sort(open, new StateComparator());
+                }
+            }
+
+            index = -1;
+            for (State state : close) {
+                index++;
+                if (areTheyEqual(state.getCurrent_state(), expand.getCurrent_state())) {
+                    close_flag = true;
+                    break;
+
+                }
+            }
+
+            if (close_flag) {
+                System.out.println(s + " in close");
+                //int index = close.indexOf(expand_left);
+                State old_left = close.get(index);
+                if (expand.getCost() < old_left.getCost()) {
+                    System.out.println(s + " updated");
+                    close.remove(index);
+                    open.add(expand);
+                    Collections.sort(open, new StateComparator());
+                }
+            }
+
+        }
+
     }
 }
