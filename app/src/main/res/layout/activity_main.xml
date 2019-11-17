@@ -132,6 +132,7 @@
         android:textAllCaps="false"
         app:layout_constraintTop_toBottomOf="@id/start"/>
 
+
     <Button
         android:id="@+id/hint"
         android:layout_width="match_parent"
@@ -142,6 +143,14 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/shuffle"/>
+    <Button
+        android:id="@+id/newpuzzle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:text="New Puzzle"
+        android:textAllCaps="false"
+        app:layout_constraintTop_toBottomOf="@id/hint"/>
 
     <Button
         android:id="@+id/stop"

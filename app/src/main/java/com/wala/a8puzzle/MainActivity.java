@@ -16,6 +16,7 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.time.temporal.ValueRange;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.PriorityQueue;
@@ -41,12 +42,20 @@ public class MainActivity extends AppCompatActivity {
     private TextView tile_0, tile_1, tile_2,
                      tile_3, tile_4, tile_5,
                      tile_6, tile_7, tile_8;
-    private Button start, shuffle, next_step, stop;
+    private Button start, shuffle, next_step, stop,newpuzzle;
+    private boolean is_running = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        int goalNumber = getIntent().getIntExtra("Goalid",100);
+        if (goalNumber == 1){
+            first_goal = new int[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 0}};
+        }
+        else {
+            first_goal = new int[][]{{1, 2, 3}, {8, 0, 4}, {7, 6, 5}};
+        }
 
         gridLayout = findViewById(R.id.grid);
         initTextViews();
@@ -57,18 +66,20 @@ public class MainActivity extends AppCompatActivity {
         createCurrentState();
 
         setGridElements(current_state);
-
         start = findViewById(R.id.start);
         shuffle = findViewById(R.id.shuffle);
         next_step = findViewById(R.id.hint);
         stop = findViewById(R.id.stop);
+        newpuzzle = findViewById(R.id.newpuzzle);
 
         start.setOnClickListener(v->{
             shuffle.setEnabled(false);
             start.setEnabled(false);
+            is_running = true;
 
-            Handler handler = new Handler();
-            handler.post(this::solve);
+//            Handler handler = new Handler();
+//            handler.post(this::solve);
+            BackGroundClass.execute(this::solve);
 //            AsyncSolver asyncSolver = new AsyncSolver();
 //            asyncSolver.doInBackground(null);
         });
@@ -77,6 +88,13 @@ public class MainActivity extends AppCompatActivity {
 //                timer.cancel();
             shuffle.setEnabled(true);
             start.setEnabled(true);
+            is_running = false;
+        });
+        newpuzzle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
         });
         next_step.setOnClickListener(w-> Toast.makeText(this, solveForHint().split("&")[0], Toast.LENGTH_LONG).show());
         shuffle.setOnClickListener(b->{
@@ -387,7 +405,6 @@ public class MainActivity extends AppCompatActivity {
 
         int [][] current;
 
-
         current = new int[3][3];
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
@@ -499,7 +516,7 @@ public class MainActivity extends AppCompatActivity {
 
         //do {
 
-        while (!open.isEmpty()) {
+        while (!open.isEmpty() && is_running) {
 
             State expand_left = new State();
             State expand_right = new State();
@@ -571,17 +588,18 @@ public class MainActivity extends AppCompatActivity {
             }
 
             close.add(current_state);
-            setGridElements(current_state);
+            runOnUiThread(() -> setGridElements(current_state));
+
 
         }
-
-        setGridElements(current_state);
+        runOnUiThread(() -> {
+            setGridElements(current_state);
+            start.setEnabled(true);
+            shuffle.setEnabled(true);
+        });
 
         //} while (!areTheyEqual(current_state.getCurrent_state(), first_goal));
         printArray(current_state.getCurrent_state(), "Congrats");
-
-        start.setEnabled(true);
-        shuffle.setEnabled(true);
 
         return sol;
     }
@@ -751,4 +769,11 @@ public class MainActivity extends AppCompatActivity {
         return sol;
     }
 
+    class BackGroundClass extends AsyncTask{
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            return null;
+        }
+    }
 }
